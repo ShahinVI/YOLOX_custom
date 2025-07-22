@@ -224,29 +224,42 @@ class COCOEvaluator:
             cls = output[:, 6]
             scores = output[:, 4] * output[:, 5]
 
-            image_wise_data.update({
-                int(img_id): {
-                    "bboxes": [box.numpy().tolist() for box in bboxes],
-                    "scores": [score.numpy().item() for score in scores],
-                    "categories": [
-                        self.dataloader.dataset.class_ids[int(cls[ind])]
-                        for ind in range(bboxes.shape[0])
-                    ],
-                }
-            })
-
-            bboxes = xyxy2xywh(bboxes)
-
+            # Filter out predictions with invalid class indices
+            valid_indices = []
+            valid_categories = []
             for ind in range(bboxes.shape[0]):
-                label = self.dataloader.dataset.class_ids[int(cls[ind])]
-                pred_data = {
-                    "image_id": int(img_id),
-                    "category_id": label,
-                    "bbox": bboxes[ind].numpy().tolist(),
-                    "score": scores[ind].numpy().item(),
-                    "segmentation": [],
-                }  # COCO json format
-                data_list.append(pred_data)
+                cls_idx = int(cls[ind])
+                if 0 <= cls_idx < len(self.dataloader.dataset.class_ids):
+                    valid_indices.append(ind)
+                    valid_categories.append(self.dataloader.dataset.class_ids[cls_idx])
+                else:
+                    print(f"Warning: Predicted class index {cls_idx} is out of range. Valid range: 0-{len(self.dataloader.dataset.class_ids)-1}")
+
+            # Only keep valid predictions
+            if valid_indices:
+                valid_bboxes = bboxes[valid_indices]
+                valid_scores = scores[valid_indices]
+                
+                image_wise_data.update({
+                    int(img_id): {
+                        "bboxes": [box.numpy().tolist() for box in valid_bboxes],
+                        "scores": [score.numpy().item() for score in valid_scores],
+                        "categories": valid_categories,
+                    }
+                })
+
+                bboxes = xyxy2xywh(valid_bboxes)
+
+                for i, ind in enumerate(valid_indices):
+                    label = valid_categories[i]
+                    pred_data = {
+                        "image_id": int(img_id),
+                        "category_id": label,
+                        "bbox": bboxes[i].numpy().tolist(),
+                        "score": valid_scores[i].numpy().item(),
+                        "segmentation": [],
+                    }  # COCO json format
+                    data_list.append(pred_data)
 
         if return_outputs:
             return data_list, image_wise_data
@@ -290,12 +303,9 @@ class COCOEvaluator:
                 _, tmp = tempfile.mkstemp()
                 json.dump(data_dict, open(tmp, "w"))
                 cocoDt = cocoGt.loadRes(tmp)
-            try:
-                from yolox.layers import COCOeval_opt as COCOeval
-            except ImportError:
-                from pycocotools.cocoeval import COCOeval
-
-                logger.warning("Use standard COCOeval.")
+            # Force use of standard COCOeval to avoid compilation issues
+            from pycocotools.cocoeval import COCOeval
+            logger.warning("Use standard COCOeval.")
 
             cocoEval = COCOeval(cocoGt, cocoDt, annType[1])
             cocoEval.evaluate()

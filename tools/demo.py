@@ -280,7 +280,7 @@ def main(exp, args):
         else:
             ckpt_file = args.ckpt
         logger.info("loading checkpoint")
-        ckpt = torch.load(ckpt_file, map_location="cpu")
+        ckpt = torch.load(ckpt_file, map_location="cpu", weights_only=False)
         # load the model state dict
         model.load_state_dict(ckpt["model"])
         logger.info("loaded checkpoint done.")
@@ -302,8 +302,15 @@ def main(exp, args):
         trt_file = None
         decoder = None
 
+    if hasattr(exp, 'class_names'):
+        class_names = exp.class_names
+        logger.info(f"Using custom class names: {class_names}")
+    else:
+        class_names = COCO_CLASSES
+        logger.info("Using default COCO class names")
+
     predictor = Predictor(
-        model, exp, COCO_CLASSES, trt_file, decoder,
+        model, exp, class_names, trt_file, decoder,
         args.device, args.fp16, args.legacy,
     )
     current_time = time.localtime()
