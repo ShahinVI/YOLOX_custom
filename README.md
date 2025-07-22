@@ -389,23 +389,6 @@ python tools/eval.py -f exps/example/custom/custom_config.py -c YOLOX_outputs/my
 - `-d 1`: Number of GPUs
 - `--conf 0.01`: Confidence threshold for evaluation
 
-## 📁 Repository Structure
-
-```
-├── exps/example/custom/custom_config.py  # ⭐ Main configuration file
-├── tools/
-│   ├── demo.py                          # Enhanced demo script  
-│   ├── eval.py                          # Fixed evaluation script
-│   └── train.py                         # Training script
-├── datasets/COCO/                       # Sample cats/dogs dataset
-│   ├── train2017/                       # Training images
-│   ├── val2017/                         # Validation images
-│   └── annotations/                     # COCO format annotations
-├── sample_results/                      # Sample validation images
-├── requirements.txt                     # Python dependencies
-└── README.md                           # This file
-```
-
 ## 🔧 Key Modifications & Fixes
 
 1. **PyTorch 2.6+ Compatibility**: Fixed `torch.load` calls with `weights_only=False`
