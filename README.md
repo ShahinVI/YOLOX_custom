@@ -1,6 +1,8 @@
 <div align="center"><img src="assets/logo.png" width="350"></div>
 <img src="assets/demo.png" >
 
+# For how to properly set everything up please go way down  starting from "Custom YOLOX Training for Pet Detection 🐱🐶"
+
 ## Introduction
 YOLOX is an anchor-free version of YOLO, with a simpler design but better performance! It aims to bridge the gap between research and industrial communities.
 For more details, please refer to our [report on Arxiv](https://arxiv.org/abs/2107.08430).
@@ -247,3 +249,232 @@ It is hoped that every AI practitioner in the world will stick to the belief of 
 没有孙剑博士的指导，YOLOX也不会问世并开源给社区使用。
 孙剑博士的离去是CV领域的一大损失，我们在此特别添加了这个部分来表达对我们的“船长”孙老师的纪念和哀思。
 希望世界上的每个AI从业者秉持着“持续创新拓展认知边界，非凡科技成就产品价值”的观念，一路向前。
+
+-------------------------------------------------
+# Custom YOLOX Training for Pet Detection 🐱🐶
+
+A customized YOLOX setup for training cat and dog detection models with comprehensive logging and visualization.
+
+## 🚀 Prerequisites & Installation
+
+### 1. Install Anaconda Distribution
+- Download [Anaconda](https://www.anaconda.com/products/distribution) for your operating system
+- **Important**: During installation, choose **"Just Me (recommended)"** - install for your user only, NOT all users
+- **Check "Add Anaconda to PATH"** during installation for easier command line access
+
+### 2. Python Version Requirement
+- **YOLOX requires Python 3.9** specifically
+- Other Python versions may cause compatibility issues
+
+### 3. Create Environment & Install Dependencies
+```bash
+# Create conda environment with Python 3.9
+conda create -n yoloxenv python=3.9
+conda activate yoloxenv
+
+# Install basic dependencies
+pip install -r requirements.txt
+```
+
+### 4. GPU Setup (CUDA Users) ⚠️
+If you have a CUDA-enabled GPU, you **MUST** install the correct PyTorch version:
+
+```bash
+# First, remove any existing PyTorch installation
+pip uninstall torch torchvision torchaudio
+
+# Go to https://pytorch.org/get-started/locally/
+# Select your configuration (OS, Package Manager, Python, CUDA version)
+# Example for CUDA 11.8:
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# For CUDA 12.1:
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# For CPU only:
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+```
+
+### 5. Verify Installation
+```bash
+python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+```
+
+## 📊 Sample Dataset Available
+
+This repository includes a **cats and dogs dataset** that you can use to test the training pipeline:
+- **Classes**: Cat (ID: 0), Dog (ID: 1)
+- **Format**: COCO-style annotations
+- **Purpose**: Perfect for testing the custom configuration and training process
+- **Location**: Check the dataset configuration in `custom_config.py`
+
+## 🎯 Features
+
+- ✅ **2-class detection** (cat, dog) with sample dataset
+- ✅ **PyTorch 2.6+ compatibility** fixes
+- ✅ **Custom class names** in demo/evaluation
+- ✅ **Weights & Biases integration** for training monitoring
+- ✅ **640×640 input resolution** for YOLOX-S
+- ✅ **Comprehensive configuration** with detailed parameter explanations
+- ✅ **Ready-to-use commands** for training, evaluation, and demo
+
+## ⚙️ Custom Configuration
+
+### New Custom Config File
+This repository includes `exps/example/custom/custom_config.py` - a comprehensive configuration file with:
+
+- **Detailed parameter explanations** for every setting
+- **Easy customization** for your own dataset
+- **Optimized settings** for small datasets (cats/dogs)
+- **Augmentation controls** with preset levels
+- **Training hyperparameters** with explanations
+
+### Key Configuration Areas to Adjust:
+```python
+# Dataset paths - Update these for your data
+DATASET_DIR = "datasets/COCO"  # Path to your dataset
+TRAIN_ANN = "instances_train2017.json"  # Training annotations
+VAL_ANN = "instances_val2017.json"      # Validation annotations
+
+# Classes - Customize for your detection task
+CLASSES = ("cat", "dog")  # Your class names
+NUM_CLASSES = len(CLASSES)  # Automatically calculated
+
+# Model selection
+MODEL_NAME = "yolox_s"  # Choose: nano, tiny, s, m, l, x
+
+# Training parameters
+MAX_EPOCH = 200  # Adjust based on dataset size
+BASIC_LR_PER_IMG = 0.01 / 64.0  # Learning rate
+AUGMENTATION_LEVEL = "light"  # light, medium, heavy
+```
+
+## 🎮 Usage Commands
+
+### Training
+```bash
+# Start training with the custom configuration
+python tools/train.py -f exps/example/custom/custom_config.py -d 1 -b 8 --fp16 -o --cache
+```
+
+**Command Parameters:**
+- `-f`: Path to configuration file
+- `-d 1`: Use 1 GPU (change to 2,4,8 for multi-GPU)
+- `-b 8`: Batch size (adjust based on GPU memory)
+- `--fp16`: Enable mixed precision (faster training, less memory)
+- `-o`: Resume from checkpoint if training interrupted
+- `--cache`: Cache dataset in RAM for faster loading
+
+### Demo (Test Your Model)
+```bash
+# Run demo on validation images
+python tools/demo.py image -f exps/example/custom/custom_config.py -c YOLOX_outputs/my_custom_yolox_experiment/best_ckpt.pth --path datasets/COCO/val2017 --conf 0.01 --save_result
+```
+
+**Command Parameters:**
+- `image`: Demo type (can be: image, video, webcam)
+- `-c`: Path to trained model checkpoint
+- `--path`: Path to test images or folder
+- `--conf 0.01`: Confidence threshold (lower = more detections)
+- `--save_result`: Save detection results as images
+
+### Evaluation
+```bash
+# Evaluate model performance on validation set
+python tools/eval.py -f exps/example/custom/custom_config.py -c YOLOX_outputs/my_custom_yolox_experiment/best_ckpt.pth -b 32 -d 1 --conf 0.01
+```
+
+**Command Parameters:**
+- `-b 32`: Batch size for evaluation
+- `-d 1`: Number of GPUs
+- `--conf 0.01`: Confidence threshold for evaluation
+
+## 📁 Repository Structure
+
+```
+├── exps/example/custom/custom_config.py  # ⭐ Main configuration file
+├── tools/
+│   ├── demo.py                          # Enhanced demo script  
+│   ├── eval.py                          # Fixed evaluation script
+│   └── train.py                         # Training script
+├── datasets/COCO/                       # Sample cats/dogs dataset
+│   ├── train2017/                       # Training images
+│   ├── val2017/                         # Validation images
+│   └── annotations/                     # COCO format annotations
+├── sample_results/                      # Sample validation images
+├── requirements.txt                     # Python dependencies
+└── README.md                           # This file
+```
+
+## 🔧 Key Modifications & Fixes
+
+1. **PyTorch 2.6+ Compatibility**: Fixed `torch.load` calls with `weights_only=False`
+2. **Custom Class Names**: Enhanced demo and evaluation scripts to use config-defined class names
+3. **Comprehensive Configuration**: Added detailed parameter explanations and presets
+4. **Dataset Integration**: Included sample cats/dogs dataset for immediate testing
+5. **Training Optimization**: Optimized settings for small dataset training
+
+## 📊 Expected Training Results
+
+With the included cats/dogs dataset:
+- **Training Time**: ~2-4 hours on modern GPU
+- **Expected AP**: 60-80% for cats/dogs detection
+- **Model Size**: ~17MB (YOLOX-S)
+- **Inference Speed**: ~30-60 FPS on GPU
+
+## 🛠️ Troubleshooting
+
+### Common Issues:
+
+**CUDA Out of Memory:**
+```bash
+# Reduce batch size
+python tools/train.py -f exps/example/custom/custom_config.py -d 1 -b 4 --fp16
+```
+
+**PyTorch Version Issues:**
+```bash
+# Reinstall correct PyTorch version from pytorch.org
+pip uninstall torch torchvision torchaudio
+# Then install from https://pytorch.org/get-started/locally/
+```
+
+**Dataset Path Errors:**
+- Check `DATASET_DIR` in `custom_config.py`
+- Ensure annotation files exist in `annotations/` folder
+- Verify image paths match annotation file references
+
+**Training Interrupted:**
+```bash
+# Resume training with -o flag
+python tools/train.py -f exps/example/custom/custom_config.py -d 1 -b 8 --fp16 -o
+```
+
+## 🎯 Customization Guide
+
+### For Your Own Dataset:
+
+1. **Prepare Data**: Convert to COCO format
+2. **Update Config**: Modify `custom_config.py`:
+   ```python
+   DATASET_DIR = "path/to/your/dataset"
+   CLASSES = ("class1", "class2", "class3")  # Your classes
+   ```
+3. **Adjust Training**: Modify epochs and learning rate based on dataset size
+4. **Test Setup**: Use small batch size first to verify everything works
+
+### Dataset Size Guidelines:
+
+- **Small (<1000 images)**: Use `AUGMENTATION_LEVEL = "heavy"`, `MAX_EPOCH = 300`
+- **Medium (1k-10k images)**: Use `AUGMENTATION_LEVEL = "medium"`, `MAX_EPOCH = 200`  
+- **Large (>10k images)**: Use `AUGMENTATION_LEVEL = "light"`, `MAX_EPOCH = 100`
+
+## 🙏 Acknowledgments
+
+Based on [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) by Megvii.
+
+Special thanks to the YOLOX team for creating an excellent object detection framework.
+
+## 📄 License
+
+Same as original YOLOX (Apache 2.0)
