@@ -251,7 +251,7 @@ It is hoped that every AI practitioner in the world will stick to the belief of 
 希望世界上的每个AI从业者秉持着“持续创新拓展认知边界，非凡科技成就产品价值”的观念，一路向前。
 
 -------------------------------------------------
-# Custom YOLOX Training for Pet Detection 🐱🐶
+# Custom YOLOX Training for Pet Detection
 
 A customized YOLOX setup for training cat and dog detection models with comprehensive logging and visualization.
 
